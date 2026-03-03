@@ -176,7 +176,9 @@ export function searchMemories(
     .map((row) => ({
       ...row,
       tags: JSON.parse(row.tags || "[]"),
-      score: 1 - (distanceMap.get(row.id) || 0), // convert distance to similarity
+      // sqlite-vec returns L2 distance. For normalized vectors: distance = 2 - 2*cosine_sim
+      // So cosine_similarity = 1 - distance/2
+      score: 1 - (distanceMap.get(row.id) || 0) / 2,
     }))
     .sort((a, b) => b.score - a.score)
     .slice(0, limit);
@@ -198,7 +200,7 @@ export function getMemoriesByProject(projectId: string, category?: string): Memo
 
 export function insertProject(project: Project): void {
   db.prepare(
-    `INSERT INTO projects (id, name, path, tech_stack, summary, conventions, created_at, last_session_at)
+    `INSERT OR IGNORE INTO projects (id, name, path, tech_stack, summary, conventions, created_at, last_session_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(
     project.id,

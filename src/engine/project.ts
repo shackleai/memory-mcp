@@ -70,7 +70,10 @@ function deriveProjectName(projectPath: string): string {
 }
 
 export function getOrCreateProject(projectPath: string): Project {
-  const existing = getProjectByPath(projectPath);
+  // Normalize path separators for consistent lookups (Windows \ vs Unix /)
+  const normalizedPath = projectPath.replace(/\\/g, "/");
+
+  const existing = getProjectByPath(normalizedPath);
   if (existing) {
     logger.debug("Found existing project:", existing.name);
     return existing;
@@ -82,7 +85,7 @@ export function getOrCreateProject(projectPath: string): Project {
   const project: Project = {
     id: uuidv4(),
     name,
-    path: projectPath,
+    path: normalizedPath,
     tech_stack: techStack.length > 0 ? techStack.join(", ") : null,
     summary: null,
     conventions: null,
