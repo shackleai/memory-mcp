@@ -1,0 +1,27 @@
+# Source (dist/ is what ships)
+src/
+tests/
+tsconfig.json
+tsup.config.ts
+vitest.config.ts
+
+# Dev files
+.github/
+.vscode/
+.idea/
+CLAUDE.md
+PROGRESS.md
+docs/development/
+coverage/
+.models/
+
+# Config
+.env
+.env.*
+.gitignore
+.npmignore
+
+# Tests
+*.test.ts
+*.spec.ts
+__tests__/

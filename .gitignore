@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Test coverage
+coverage/
+
+# Embedding model cache (downloaded at runtime)
+.models/
+
+# === LOCAL DEV FILES — NEVER COMMIT ===
+# Claude Code instructions and build tracking
+CLAUDE.md
+PROGRESS.md
+docs/development/
+
+# npm debug
+npm-debug.log*
