@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from "uuid";
-import { getAllProjects, insertSession, getProjectMemoryCount } from "../engine/storage.js";
+import { getActiveOrMostRecentProject, insertSession, getProjectMemoryCount } from "../engine/storage.js";
 import { writeSessionMarkdown } from "../engine/markdown.js";
 import type { Config } from "../types/index.js";
 
@@ -9,8 +9,8 @@ interface SessionEndParams {
 }
 
 export async function handleSessionEnd(params: SessionEndParams, config: Config) {
-  const projects = getAllProjects();
-  if (projects.length === 0) {
+  const project = getActiveOrMostRecentProject();
+  if (!project) {
     return {
       content: [
         {
@@ -21,7 +21,6 @@ export async function handleSessionEnd(params: SessionEndParams, config: Config)
     };
   }
 
-  const project = projects[0];
   const now = new Date();
   const date = now.toISOString().split("T")[0];
 

@@ -1,5 +1,5 @@
 import { generateEmbedding } from "../engine/embeddings.js";
-import { searchMemories, getAllProjects } from "../engine/storage.js";
+import { searchMemories, getActiveOrMostRecentProject } from "../engine/storage.js";
 import type { Config } from "../types/index.js";
 
 interface MemorySearchParams {
@@ -11,8 +11,9 @@ interface MemorySearchParams {
 export async function handleMemorySearch(params: MemorySearchParams, config: Config) {
   const limit = params.limit || 5;
 
-  const projects = getAllProjects();
-  if (projects.length === 0) {
+  // Use the active project set by memory_init, or fallback to most recent
+  const project = getActiveOrMostRecentProject();
+  if (!project) {
     return {
       content: [
         {
@@ -23,7 +24,6 @@ export async function handleMemorySearch(params: MemorySearchParams, config: Con
     };
   }
 
-  const project = projects[0]; // most recently active
   const embedding = await generateEmbedding(params.query);
   const results = searchMemories(project.id, embedding, limit, params.category);
 

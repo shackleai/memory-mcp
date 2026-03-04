@@ -6,8 +6,49 @@ import type { Config, Memory, MemoryWithScore, Project, Session } from "../types
 
 let db: Database.Database;
 
+// Active project set by memory_init, used by all other tools
+let activeProjectId: string | null = null;
+
 export function getDb(): Database.Database {
   return db;
+}
+
+export function setActiveProject(projectId: string): void {
+  activeProjectId = projectId;
+}
+
+export function getActiveProject(): Project | null {
+  if (!activeProjectId) return null;
+  return (db.prepare("SELECT * FROM projects WHERE id = ?").get(activeProjectId) as Project) || null;
+}
+
+export function getActiveOrMostRecentProject(): Project | null {
+  if (activeProjectId) {
+    const project = db.prepare("SELECT * FROM projects WHERE id = ?").get(activeProjectId) as
+      | Project
+      | undefined;
+    if (project) return project;
+  }
+  // Fallback to most recently active
+  return (
+    (db.prepare("SELECT * FROM projects ORDER BY last_session_at DESC LIMIT 1").get() as
+      | Project
+      | undefined) || null
+  );
+}
+
+let dbClosed = false;
+
+export function closeDb(): void {
+  if (db && !dbClosed) {
+    dbClosed = true;
+    try {
+      db.close();
+      logger.info("Database closed cleanly");
+    } catch (err) {
+      logger.error("Error closing database:", err);
+    }
+  }
 }
 
 export async function initStorage(config: Config): Promise<void> {
@@ -98,7 +139,7 @@ export function insertMemory(memory: Memory, embedding: Float32Array): void {
       memory.created_at,
       memory.updated_at,
     );
-    insertVec.run(memory.id, Buffer.from(embedding.buffer));
+    insertVec.run(memory.id, Buffer.from(embedding.buffer, embedding.byteOffset, embedding.byteLength));
   });
 
   transaction();
@@ -109,7 +150,11 @@ export function getMemory(id: string): Memory | undefined {
     | (Memory & { tags: string })
     | undefined;
   if (!row) return undefined;
-  return { ...row, tags: JSON.parse(row.tags || "[]") };
+  try {
+    return { ...row, tags: JSON.parse(row.tags || "[]") };
+  } catch {
+    return { ...row, tags: [] };
+  }
 }
 
 export function updateMemory(id: string, content: string, embedding: Float32Array): void {
@@ -119,22 +164,24 @@ export function updateMemory(id: string, content: string, embedding: Float32Arra
     db.prepare("DELETE FROM memory_embeddings WHERE id = ?").run(id);
     db.prepare("INSERT INTO memory_embeddings (id, embedding) VALUES (?, ?)").run(
       id,
-      Buffer.from(embedding.buffer),
+      Buffer.from(embedding.buffer, embedding.byteOffset, embedding.byteLength),
     );
   });
   transaction();
 }
 
 export function deleteMemory(id: string): boolean {
-  const result = db.prepare("UPDATE memories SET is_active = 0, updated_at = ? WHERE id = ?").run(
-    new Date().toISOString(),
-    id,
-  );
-  if (result.changes > 0) {
-    db.prepare("DELETE FROM memory_embeddings WHERE id = ?").run(id);
-    return true;
-  }
-  return false;
+  const transaction = db.transaction(() => {
+    const result = db
+      .prepare("UPDATE memories SET is_active = 0, updated_at = ? WHERE id = ?")
+      .run(new Date().toISOString(), id);
+    if (result.changes > 0) {
+      db.prepare("DELETE FROM memory_embeddings WHERE id = ?").run(id);
+      return true;
+    }
+    return false;
+  });
+  return transaction();
 }
 
 export function searchMemories(
@@ -154,7 +201,10 @@ export function searchMemories(
     LIMIT ?
   `,
     )
-    .all(Buffer.from(embedding.buffer), limit * 3) as Array<{ id: string; distance: number }>;
+    .all(Buffer.from(embedding.buffer, embedding.byteOffset, embedding.byteLength), limit * 3) as Array<{
+    id: string;
+    distance: number;
+  }>;
 
   if (vecResults.length === 0) return [];
 
@@ -175,7 +225,7 @@ export function searchMemories(
   return rows
     .map((row) => ({
       ...row,
-      tags: JSON.parse(row.tags || "[]"),
+      tags: safeParseTags(row.tags),
       // sqlite-vec returns L2 distance. For normalized vectors: distance = 2 - 2*cosine_sim
       // So cosine_similarity = 1 - distance/2
       score: 1 - (distanceMap.get(row.id) || 0) / 2,
@@ -193,7 +243,16 @@ export function getMemoriesByProject(projectId: string, category?: string): Memo
   }
   query += " ORDER BY updated_at DESC";
   const rows = db.prepare(query).all(...params) as Array<Memory & { tags: string }>;
-  return rows.map((row) => ({ ...row, tags: JSON.parse(row.tags || "[]") }));
+  return rows.map((row) => ({ ...row, tags: safeParseTags(row.tags) }));
+}
+
+function safeParseTags(tags: string | null | undefined): string[] {
+  if (!tags) return [];
+  try {
+    return JSON.parse(tags);
+  } catch {
+    return [];
+  }
 }
 
 // --- Project CRUD ---
@@ -215,7 +274,10 @@ export function insertProject(project: Project): void {
 }
 
 export function getProjectByPath(path: string): Project | undefined {
-  return db.prepare("SELECT * FROM projects WHERE path = ?").get(path) as Project | undefined;
+  const normalizedPath = path.replace(/\\/g, "/");
+  return db.prepare("SELECT * FROM projects WHERE path = ?").get(normalizedPath) as
+    | Project
+    | undefined;
 }
 
 export function getAllProjects(): Project[] {

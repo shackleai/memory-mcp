@@ -1,9 +1,8 @@
 import { v4 as uuidv4 } from "uuid";
 import { generateEmbedding } from "../engine/embeddings.js";
-import { insertMemory, getProjectByPath } from "../engine/storage.js";
+import { insertMemory, getActiveOrMostRecentProject } from "../engine/storage.js";
 import { checkDuplicate, updateDuplicate } from "../engine/dedup.js";
 import { appendMemoryToMarkdown } from "../engine/markdown.js";
-import { getOrCreateProject } from "../engine/project.js";
 import type { Config, Memory, MemoryCategory, Importance } from "../types/index.js";
 
 interface MemoryStoreParams {
@@ -14,18 +13,12 @@ interface MemoryStoreParams {
 }
 
 export async function handleMemoryStore(params: MemoryStoreParams, config: Config) {
-  // Determine current project from the most recently initialized project
-  // In a real flow, memory_init is called first, setting the project context
-  // For now, we use a simple approach
   const importance = params.importance || "medium";
   const tags = params.tags || [];
 
-  const embedding = await generateEmbedding(params.content);
-
-  // We need a project_id — use the last active project or a default
-  // The MCP client typically calls memory_init first which sets up the project
-  const projects = (await import("../engine/storage.js")).getAllProjects();
-  if (projects.length === 0) {
+  // Use the active project set by memory_init, or fallback to most recent
+  const project = getActiveOrMostRecentProject();
+  if (!project) {
     return {
       content: [
         {
@@ -38,7 +31,7 @@ export async function handleMemoryStore(params: MemoryStoreParams, config: Confi
     };
   }
 
-  const project = projects[0]; // most recently active project
+  const embedding = await generateEmbedding(params.content);
 
   // Check for duplicates
   const dedupResult = checkDuplicate(project.id, embedding, config);

@@ -1,5 +1,10 @@
 import { getOrCreateProject } from "../engine/project.js";
-import { getMemoriesByProject, updateProjectSession, getProjectMemoryCount } from "../engine/storage.js";
+import {
+  getMemoriesByProject,
+  updateProjectSession,
+  getProjectMemoryCount,
+  setActiveProject,
+} from "../engine/storage.js";
 import { archiveOldSessions } from "../engine/archive.js";
 import type { Config } from "../types/index.js";
 
@@ -10,6 +15,9 @@ interface MemoryInitParams {
 
 export async function handleMemoryInit(params: MemoryInitParams, config: Config) {
   const project = getOrCreateProject(params.project_path);
+
+  // Set as the active project for this session — all subsequent tool calls use this
+  setActiveProject(project.id);
   updateProjectSession(project.id);
 
   // Auto-archive old session files

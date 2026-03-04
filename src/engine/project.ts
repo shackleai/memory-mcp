@@ -19,7 +19,7 @@ const TECH_DETECTIONS: TechDetection[] = [
   { name: "Java", indicators: ["pom.xml", "build.gradle"] },
   { name: "Ruby", indicators: ["Gemfile"] },
   { name: "PHP", indicators: ["composer.json"] },
-  { name: ".NET", indicators: ["*.csproj", "*.sln"] },
+  { name: ".NET", indicators: ["Directory.Build.props", "global.json"] },
   { name: "Next.js", indicators: ["next.config.js", "next.config.mjs", "next.config.ts"] },
   { name: "React", indicators: ["src/App.tsx", "src/App.jsx"] },
   { name: "Vue", indicators: ["vue.config.js", "nuxt.config.ts"] },
