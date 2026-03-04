@@ -119,6 +119,69 @@ describe("storage layer", () => {
   });
 });
 
+describe("deduplication", () => {
+  it("should detect duplicate content and update instead of inserting", async () => {
+    const { insertMemory, searchMemories, getDb } = await import("../src/engine/storage.js");
+    const { checkDuplicate, updateDuplicate } = await import("../src/engine/dedup.js");
+    const { generateEmbedding } = await import("../src/engine/embeddings.js");
+
+    // Insert a memory with real embedding
+    const content1 = "We use React 19 for the frontend framework";
+    const emb1 = await generateEmbedding(content1);
+    const now = new Date().toISOString();
+
+    insertMemory(
+      {
+        id: "dedup-test-1",
+        project_id: "test-proj-1",
+        content: content1,
+        category: "decision",
+        importance: "high",
+        tags: [],
+        source: null,
+        session_date: now.split("T")[0],
+        created_at: now,
+        updated_at: now,
+        is_active: 1,
+      },
+      emb1,
+    );
+
+    // Try to store very similar content
+    const content2 = "Our frontend framework is React 19";
+    const emb2 = await generateEmbedding(content2);
+
+    const result = checkDuplicate("test-proj-1", emb2, {
+      storage_path: "",
+      embedding: { provider: "local" },
+      max_memories_per_project: 10000,
+      max_session_history_days: 90,
+      auto_init: true,
+      auto_dedup: true,
+      dedup_threshold: 0.8, // lower threshold for test reliability
+    });
+
+    expect(result.isDuplicate).toBe(true);
+    expect(result.existingMemory).toBeDefined();
+    expect(result.existingMemory!.content).toBe(content1);
+
+    // Different content should NOT be flagged as duplicate
+    const content3 = "Deploy using Docker Compose on AWS Lightsail";
+    const emb3 = await generateEmbedding(content3);
+    const result2 = checkDuplicate("test-proj-1", emb3, {
+      storage_path: "",
+      embedding: { provider: "local" },
+      max_memories_per_project: 10000,
+      max_session_history_days: 90,
+      auto_init: true,
+      auto_dedup: true,
+      dedup_threshold: 0.8,
+    });
+
+    expect(result2.isDuplicate).toBe(false);
+  }, 30000);
+});
+
 describe("embeddings", () => {
   it("should generate a 384-dim embedding from text", async () => {
     const { generateEmbedding } = await import("../src/engine/embeddings.js");
@@ -151,6 +214,38 @@ describe("embeddings", () => {
     // Different texts should have lower similarity
     expect(differentScore).toBeLessThan(similarScore);
   }, 30000);
+});
+
+describe("archive", () => {
+  it("should archive sessions older than retention period", async () => {
+    const { writeSessionMarkdown, readMarkdownFile } = await import("../src/engine/markdown.js");
+    const { archiveOldSessions } = await import("../src/engine/archive.js");
+    const { join: pathJoin } = await import("node:path");
+
+    // Write an old session (200 days ago)
+    const oldDate = new Date();
+    oldDate.setDate(oldDate.getDate() - 200);
+    const oldDateStr = oldDate.toISOString().split("T")[0];
+    writeSessionMarkdown(testDir, "archive-test", oldDateStr, "Old session");
+
+    // Write a recent session (today)
+    const todayStr = new Date().toISOString().split("T")[0];
+    writeSessionMarkdown(testDir, "archive-test", todayStr, "Recent session");
+
+    const archiveConfig = { ...config, max_session_history_days: 90 };
+    const result = archiveOldSessions(archiveConfig, "archive-test");
+
+    expect(result.archived).toBe(1);
+    expect(result.kept).toBe(1);
+
+    // Old file should be gone
+    const oldPath = pathJoin(testDir, "projects", "archive-test", "sessions", `${oldDateStr}.md`);
+    expect(readMarkdownFile(oldPath)).toBeNull();
+
+    // Recent file should still exist
+    const recentPath = pathJoin(testDir, "projects", "archive-test", "sessions", `${todayStr}.md`);
+    expect(readMarkdownFile(recentPath)).toBeTruthy();
+  });
 });
 
 describe("markdown", () => {

@@ -1,5 +1,6 @@
 import { getOrCreateProject } from "../engine/project.js";
 import { getMemoriesByProject, updateProjectSession, getProjectMemoryCount } from "../engine/storage.js";
+import { archiveOldSessions } from "../engine/archive.js";
 import type { Config } from "../types/index.js";
 
 interface MemoryInitParams {
@@ -10,6 +11,9 @@ interface MemoryInitParams {
 export async function handleMemoryInit(params: MemoryInitParams, config: Config) {
   const project = getOrCreateProject(params.project_path);
   updateProjectSession(project.id);
+
+  // Auto-archive old session files
+  archiveOldSessions(config, project.name);
 
   const conventions = getMemoriesByProject(project.id, "convention").slice(0, 5);
   const decisions = getMemoriesByProject(project.id, "decision").slice(0, 5);
