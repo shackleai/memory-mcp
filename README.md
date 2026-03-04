@@ -12,19 +12,54 @@ Give Claude Code, Cursor, Windsurf, VS Code Copilot, OpenAI Codex, or any MCP-co
 Run this in your project directory:
 
 ```bash
-npx @shackleai/memory-mcp setup
+npx -y @shackleai/memory-mcp setup
 ```
 
-This creates a `.mcp.json` file in your project. Done — Claude Code, Cursor, VS Code Copilot, and any MCP client that reads `.mcp.json` will pick it up automatically. Commit it to git so your whole team gets memory.
+This creates two files in your project:
 
-### Alternative: Client-Specific Setup
+- **`.mcp.json`** — registers the memory server so your AI tool auto-starts it
+- **`CLAUDE.md`** — tells the AI to actively use memory every session
+
+Commit both to git so your whole team gets memory. That's it — no config, no API keys, no accounts.
+
+> **npm/npx version too old?** If the command fails, see [Troubleshooting](#npx-setup-fails-or-command-not-found-setup).
+
+## How It Works
+
+```
+1. Run the setup command above (one-time)
+2. Start your AI tool in the project directory
+3. Memory server starts automatically in the background
+4. AI stores decisions, conventions, and bugs as you work
+5. Next session — AI searches memory and picks up where you left off
+```
+
+**You don't need to do anything after setup.** The AI sees the memory tools and uses them proactively — storing important decisions, searching for past context, and saving session summaries.
+
+### Verify It Works
+
+After setup, start a session and give your AI a task. Then ask:
+
+> "What have you stored in memory so far?"
+
+If it calls `memory_search` and shows stored entries, it's working. In your next session, ask:
+
+> "What do you remember about this project?"
+
+It should recall context from the previous session without reading any files.
+
+## Alternative Setup Methods
+
+The `npx setup` command works for all MCP clients. If you prefer client-specific configuration:
 
 <details>
-<summary>Claude Code (global)</summary>
+<summary>Claude Code (global config)</summary>
 
 ```bash
 claude mcp add memory -- npx -y @shackleai/memory-mcp
 ```
+
+This adds memory to your global Claude Code config. It works across all projects, but won't be shared with your team via git.
 
 </details>
 
@@ -82,7 +117,8 @@ Add to `.vscode/mcp.json` in your project:
 
 </details>
 
-### Claude Desktop
+<details>
+<summary>Claude Desktop</summary>
 
 Add to your Claude Desktop config:
 
@@ -100,15 +136,17 @@ Add to your Claude Desktop config:
 }
 ```
 
-### Alternative: Install Globally
+</details>
 
-If `npx` doesn't work (older npm versions), install globally:
+<details>
+<summary>Install globally (if npx doesn't work)</summary>
 
 ```bash
 npm install -g @shackleai/memory-mcp
+shackleai-memory setup
 ```
 
-Then use the global binary in your MCP config:
+Or use the global binary directly in your MCP config:
 
 ```json
 {
@@ -120,9 +158,10 @@ Then use the global binary in your MCP config:
 }
 ```
 
-### Alternative: Run from Source
+</details>
 
-Clone and run directly (for contributors or if npm isn't available):
+<details>
+<summary>Run from source (for contributors)</summary>
 
 ```bash
 git clone https://github.com/shackleai/memory-mcp.git
@@ -140,44 +179,20 @@ cd memory-mcp && npm install && npm run build
 }
 ```
 
+</details>
+
 ### First Run
 
 The first run downloads the embedding model (~80MB, one-time). After that, everything works offline.
 
-## How It Works — Zero Config, Fully Automatic
-
-```
-1. You add one line to your MCP config (above)
-2. Start your AI tool in any project directory
-3. Memory server auto-detects your project on startup
-4. AI stores decisions, conventions, and bugs as you work
-5. Next session — AI picks up exactly where you left off
-```
-
-**You don't need to do anything.** The server auto-initializes from your working directory. The AI agent sees the memory tools and uses them proactively — storing important decisions, searching for past context, and saving session summaries.
-
-### Supercharge It with CLAUDE.md (Recommended)
-
-For even better results, add this to your project's `CLAUDE.md` file:
-
-```markdown
-## Memory
-
-This project uses ShackleAI Memory for persistent context across sessions.
-- At session start, search memory for relevant context about what you're working on
-- When you make important decisions, discover bugs, or establish conventions — store them in memory
-- Before ending a session, save a summary of what was accomplished and what's left to do
-```
-
-This tells your AI to proactively use memory. Without it, the tools still work, but the AI may not use them as aggressively.
-
 ## Features
 
+- **One-command setup** — `npx -y @shackleai/memory-mcp setup` and you're done
 - **Fully automatic** — auto-detects project on startup, no manual init needed
 - **7 MCP tools** — init, store, search, update, delete, list projects, session end
 - **MCP resources** — project context available as a readable resource
 - **Local-first** — everything stored on your machine at `~/.shackleai/`
-- **Zero config** — no API keys, no cloud account, no setup
+- **Zero config** — no API keys, no cloud account, no setup beyond the install command
 - **Offline** — local embeddings via MiniLM-L6-v2 (free, runs on CPU)
 - **Human-readable** — memories stored as Markdown files you can read and edit
 - **Git-friendly** — version control your AI's memory with standard git
@@ -358,37 +373,64 @@ Or via environment variable:
 
 ## Troubleshooting
 
-### "Cannot connect to MCP server" / Server fails to start
+### `npx setup` fails or "command not found: setup"
 
-**Most common cause**: Old `npx` version (< 7.0). Check with `npx --version`. If it shows 6.x:
+Your npm/npx is too old. This happens when npm is v6.x (ships with older Node installers). Check with:
 
 ```bash
-# Option 1: Install globally instead
-npm install -g @shackleai/memory-mcp
-# Then for Claude Code:
-claude mcp add memory -- shackleai-memory
+npm --version
+```
 
-# Option 2: Update npm (gets you a modern npx)
+If it shows 6.x, fix it:
+
+```bash
+# Option 1: Update npm (recommended — gets you modern npx)
 npm install -g npm@latest
 
-# Option 3: Run from source (no npx needed)
-git clone https://github.com/shackleai/memory-mcp.git
-cd memory-mcp && npm install && npm run build
-claude mcp add memory -- node /absolute/path/to/memory-mcp/dist/index.js
+# If that fails on Windows with "Refusing to delete" error:
+# Delete the stale files first, then retry:
+# Remove-Item "$env:APPDATA\npm\npm.cmd", "$env:APPDATA\npm\npx.cmd" -Force
+# npm install -g npm@latest
+
+# Option 2: Install globally instead (works with any npm version)
+npm install -g @shackleai/memory-mcp
+shackleai-memory setup
+```
+
+### "Cannot connect to MCP server" / Server fails to start
+
+Make sure Node.js 20+ is installed. Then verify the server runs:
+
+```bash
+npx -y @shackleai/memory-mcp --help
+```
+
+If using a global install, verify the binary is in your PATH:
+
+```bash
+shackleai-memory --help
 ```
 
 ### Claude Code: "memory" not showing in `claude mcp list`
 
-Claude Code stores MCP config in `~/.claude.json` (NOT `~/.claude/mcp.json`). Always use the CLI to add servers:
+If you used `npx setup`, Claude Code reads `.mcp.json` from your project directory automatically — you don't need `claude mcp list` to show it. Just start `claude` in the project directory.
+
+If you used `claude mcp add` instead, verify with:
 
 ```bash
-claude mcp add memory -- npx -y @shackleai/memory-mcp
-# Verify:
 claude mcp list
-# Should show: memory: ✓ Connected
+# Should show: memory: connected
 ```
 
-Do NOT manually edit `~/.claude/mcp.json` — Claude Code ignores that file.
+### AI not storing memories during sessions
+
+The `setup` command creates a `CLAUDE.md` file with instructions that tell the AI to use memory proactively. If you already had a `CLAUDE.md`, the setup appends memory instructions to it. Check that your `CLAUDE.md` contains the "ShackleAI Memory" section.
+
+If the AI still isn't storing, you can ask it directly:
+
+> "Store what you just did in memory"
+
+This confirms the tools work, and the AI will be more proactive about storing in subsequent interactions.
 
 ### First tool call is slow
 
@@ -416,6 +458,7 @@ ShackleAI fixes this by providing a **universal memory layer** that works across
 ## Requirements
 
 - Node.js 20 or later
+- npm 7 or later (for `npx setup` — or install globally with any npm version)
 - Any MCP-compatible AI client
 
 ## Contributing
