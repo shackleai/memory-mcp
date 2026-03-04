@@ -8,8 +8,17 @@ const MEMORY_SERVER_CONFIG = {
   args: ["-y", "@shackleai/memory-mcp"],
 };
 
-export function runSetup(): void {
-  const cwd = process.cwd();
+const MEMORY_INSTRUCTIONS = `## Memory
+
+This project uses ShackleAI Memory (MCP) for persistent context across sessions.
+
+You MUST do all three of these every session:
+1. **Session start**: Call memory_search to load prior context about this project
+2. **During work**: Call memory_store for every file you create/modify, every decision you make, every convention you follow — minimum one memory_store call per task
+3. **Session end**: Call memory_session_end with a summary of what was accomplished
+`;
+
+function setupMcpConfig(cwd: string): void {
   const configPath = join(cwd, MCP_CONFIG_FILE);
 
   let config: Record<string, unknown> = {};
@@ -25,7 +34,6 @@ export function runSetup(): void {
     }
   }
 
-  // Ensure mcpServers key exists
   if (!config.mcpServers || typeof config.mcpServers !== "object") {
     config.mcpServers = {};
   }
@@ -39,6 +47,31 @@ export function runSetup(): void {
     writeFileSync(configPath, JSON.stringify(config, null, 2) + "\n");
     console.log(existed ? `\u2713 Added memory server to existing ${MCP_CONFIG_FILE}` : `\u2713 Created ${MCP_CONFIG_FILE} with memory server`);
   }
+}
+
+function setupClaudeMd(cwd: string): void {
+  const claudeMdPath = join(cwd, "CLAUDE.md");
+
+  if (existsSync(claudeMdPath)) {
+    const content = readFileSync(claudeMdPath, "utf-8");
+    if (content.includes("ShackleAI Memory")) {
+      console.log("\u2713 CLAUDE.md already has memory instructions");
+      return;
+    }
+    // Append to existing CLAUDE.md
+    writeFileSync(claudeMdPath, content.trimEnd() + "\n\n" + MEMORY_INSTRUCTIONS);
+    console.log("\u2713 Added memory instructions to existing CLAUDE.md");
+  } else {
+    writeFileSync(claudeMdPath, MEMORY_INSTRUCTIONS);
+    console.log("\u2713 Created CLAUDE.md with memory instructions");
+  }
+}
+
+export function runSetup(): void {
+  const cwd = process.cwd();
+
+  setupMcpConfig(cwd);
+  setupClaudeMd(cwd);
 
   console.log(`\nYou're all set! Start your AI tool in this directory and memory will be active.\n`);
   console.log("  Claude Code:  claude");
