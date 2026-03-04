@@ -13,7 +13,7 @@ const MEMORY_INSTRUCTIONS = `## Memory
 This project uses ShackleAI Memory (MCP) for persistent context across sessions.
 
 You MUST do all three of these every session:
-1. **Session start**: Call memory_search to load prior context about this project
+1. **Session start**: Call memory_init with this project's directory path, then memory_search to load prior context
 2. **During work**: Call memory_store for every file you create/modify, every decision you make, every convention you follow — minimum one memory_store call per task
 3. **Session end**: Call memory_session_end with a summary of what was accomplished
 `;
