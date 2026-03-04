@@ -48,6 +48,7 @@ export async function handleSessionEnd(params: SessionEndParams, config: Config)
           session_id: session.id,
           date,
           project: project.name,
+          _hint: "Session saved. Next session, start with memory_search to reload context.",
         }),
       },
     ],

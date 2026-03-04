@@ -15,6 +15,14 @@ import { loadConfig } from "./utils/config.js";
 import { logger } from "./utils/logger.js";
 import type { Config } from "./types/index.js";
 
+// CLI subcommands — handle before starting MCP server
+const subcommand = process.argv[2];
+if (subcommand === "setup") {
+  const { runSetup } = await import("./cli/setup.js");
+  runSetup();
+  process.exit(0);
+}
+
 function resolveProjectPath(): string | null {
   // Priority: CLI arg > env var > cwd
   const args = process.argv.slice(2);
@@ -56,6 +64,41 @@ function autoInit(config: Config): void {
   } catch (err) {
     logger.warn("Auto-init failed (non-fatal):", err);
   }
+}
+
+function registerPrompts(server: McpServer) {
+  server.prompt(
+    "memory-guidelines",
+    "How to use ShackleAI Memory effectively — trigger checklist and best practices",
+    () => ({
+      messages: [
+        {
+          role: "user" as const,
+          content: {
+            type: "text" as const,
+            text: `# ShackleAI Memory — Trigger Checklist
+
+You MUST call memory_store immediately when any of these occur:
+
+- Architectural decision made → category: "decision"
+- Bug discovered or fixed → category: "bug"
+- Convention established → category: "convention"
+- User preference learned → category: "preference"
+- TODO identified → category: "todo"
+- Important project fact → category: "context"
+- System design insight → category: "architecture"
+
+## Session Lifecycle
+1. START: Call memory_search to load context
+2. DURING: Call memory_store on every trigger above
+3. END: Call memory_session_end with summary
+
+Bias to action: if unsure whether to store — store it.`,
+          },
+        },
+      ],
+    }),
+  );
 }
 
 function registerResources(server: McpServer) {
@@ -123,17 +166,26 @@ async function main() {
   const server = new McpServer(
     {
       name: "shackleai-memory",
-      version: "0.3.2",
+      version: "0.3.3",
     },
     {
-      instructions: `You have access to a persistent memory system via ShackleAI Memory. Use it proactively — do NOT wait for the user to ask.
+      instructions: `CRITICAL: You MUST follow these instructions for the ShackleAI Memory system. These are binding requirements, not suggestions.
 
 SESSION START:
 - Call memory_search with a query about the current task or project to load relevant context.
 - If results are empty, call memory_list_projects to check project detection, then memory_init with the correct project path if needed.
 
-DURING WORK:
-- Call memory_store whenever you: make an architectural decision, discover a bug or gotcha, establish a convention, learn a user preference, or identify a TODO. Do this immediately — don't batch them for later.
+DURING WORK — MANDATORY TRIGGERS:
+When any of these events occur, you MUST call memory_store immediately:
+- Architectural decision → category: "decision"
+- Bug discovered or fixed → category: "bug"
+- Convention established → category: "convention"
+- User preference learned → category: "preference"
+- TODO or incomplete work identified → category: "todo"
+- Important project fact learned → category: "context"
+- System design or structure insight → category: "architecture"
+
+Bias to action: If unsure whether to store — store it. False positives are cheap; lost context is expensive.
 
 SESSION END:
 - Call memory_session_end with a summary of what was accomplished and any open items. Do this before the conversation ends.
@@ -144,6 +196,7 @@ These memories persist across sessions and help you work faster. A memory stored
 
   registerTools(server, config);
   registerResources(server);
+  registerPrompts(server);
 
   const transport = new StdioServerTransport();
   await server.connect(transport);

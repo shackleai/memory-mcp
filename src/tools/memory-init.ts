@@ -55,6 +55,7 @@ export async function handleMemoryInit(params: MemoryInitParams, config: Config)
           tech_stack: project.tech_stack,
           memory_count: memoryCount,
           summary,
+          _hint: "Remember: call memory_store whenever you make decisions, discover bugs, or learn conventions during this session.",
         }),
       },
     ],

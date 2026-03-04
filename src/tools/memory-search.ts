@@ -44,6 +44,7 @@ export async function handleMemorySearch(params: MemorySearchParams, config: Con
           })),
           count: results.length,
           project: project.name,
+          _hint: "If you discover new information during this session, call memory_store to save it.",
         }),
       },
     ],

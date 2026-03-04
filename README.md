@@ -9,13 +9,27 @@ Give Claude Code, Cursor, Windsurf, VS Code Copilot, OpenAI Codex, or any MCP-co
 
 ## Install — One Command
 
-### Claude Code
+Run this in your project directory:
+
+```bash
+npx @shackleai/memory-mcp setup
+```
+
+This creates a `.mcp.json` file in your project. Done — Claude Code, Cursor, VS Code Copilot, and any MCP client that reads `.mcp.json` will pick it up automatically. Commit it to git so your whole team gets memory.
+
+### Alternative: Client-Specific Setup
+
+<details>
+<summary>Claude Code (global)</summary>
 
 ```bash
 claude mcp add memory -- npx -y @shackleai/memory-mcp
 ```
 
-### Cursor
+</details>
+
+<details>
+<summary>Cursor</summary>
 
 Add to `~/.cursor/mcp.json`:
 
@@ -30,7 +44,10 @@ Add to `~/.cursor/mcp.json`:
 }
 ```
 
-### Windsurf
+</details>
+
+<details>
+<summary>Windsurf</summary>
 
 Add to `~/.codeium/windsurf/mcp_config.json`:
 
@@ -45,7 +62,10 @@ Add to `~/.codeium/windsurf/mcp_config.json`:
 }
 ```
 
-### VS Code Copilot
+</details>
+
+<details>
+<summary>VS Code Copilot</summary>
 
 Add to `.vscode/mcp.json` in your project:
 
@@ -59,6 +79,8 @@ Add to `.vscode/mcp.json` in your project:
   }
 }
 ```
+
+</details>
 
 ### Claude Desktop
 

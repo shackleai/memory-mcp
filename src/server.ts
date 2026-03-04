@@ -41,7 +41,7 @@ export function registerTools(server: McpServer, config: Config) {
 
   server.tool(
     "memory_store",
-    "Save important information to persistent memory. ALWAYS use this when you: make an architectural decision, discover a bug or gotcha, establish a convention, learn a user preference, identify a TODO, or gain important project context. These memories persist across sessions and help future you work faster.",
+    "Save important information to persistent memory. ALWAYS use this when you: make an architectural decision, discover a bug or gotcha, establish a convention, learn a user preference, identify a TODO, or gain important project context. These memories persist across sessions and help future you work faster. MANDATORY — call this tool immediately when any trigger fires. Do not batch or defer. When in doubt, store it.",
     {
       content: z.string().min(1).describe("What to remember — be specific and concise"),
       category: z
