@@ -116,10 +116,27 @@ async function main() {
   // Auto-detect and initialize project from cwd/env/CLI arg
   autoInit(config);
 
-  const server = new McpServer({
-    name: "shackleai-memory",
-    version: "0.3.0",
-  });
+  const server = new McpServer(
+    {
+      name: "shackleai-memory",
+      version: "0.3.1",
+    },
+    {
+      instructions: `You have access to a persistent memory system via ShackleAI Memory. Use it proactively — do NOT wait for the user to ask.
+
+SESSION START:
+- Call memory_search with a query about the current task or project to load relevant context.
+- If results are empty, call memory_list_projects to check project detection, then memory_init with the correct project path if needed.
+
+DURING WORK:
+- Call memory_store whenever you: make an architectural decision, discover a bug or gotcha, establish a convention, learn a user preference, or identify a TODO. Do this immediately — don't batch them for later.
+
+SESSION END:
+- Call memory_session_end with a summary of what was accomplished and any open items. Do this before the conversation ends.
+
+These memories persist across sessions and help you work faster. A memory stored today saves 5 minutes of re-discovery tomorrow.`,
+    },
+  );
 
   registerTools(server, config);
   registerResources(server);
