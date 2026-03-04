@@ -31,6 +31,7 @@ coverage/
 CLAUDE.md
 PROGRESS.md
 docs/development/
+scripts/
 
 # npm debug
 npm-debug.log*

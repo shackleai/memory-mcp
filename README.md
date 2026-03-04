@@ -343,19 +343,30 @@ Or via environment variable:
 ```bash
 # Option 1: Install globally instead
 npm install -g @shackleai/memory-mcp
+# Then for Claude Code:
+claude mcp add memory -- shackleai-memory
 
-# Option 2: Update npm
+# Option 2: Update npm (gets you a modern npx)
 npm install -g npm@latest
 
-# Option 3: Use node directly
-npm install -g @shackleai/memory-mcp
-# Then use: "command": "shackleai-memory" in your MCP config
+# Option 3: Run from source (no npx needed)
+git clone https://github.com/shackleai/memory-mcp.git
+cd memory-mcp && npm install && npm run build
+claude mcp add memory -- node /absolute/path/to/memory-mcp/dist/index.js
 ```
 
-**Windows users**: If npx.cmd doesn't work, use the full path:
-```json
-"command": "C:\\Program Files\\nodejs\\npx.cmd"
+### Claude Code: "memory" not showing in `claude mcp list`
+
+Claude Code stores MCP config in `~/.claude.json` (NOT `~/.claude/mcp.json`). Always use the CLI to add servers:
+
+```bash
+claude mcp add memory -- npx -y @shackleai/memory-mcp
+# Verify:
+claude mcp list
+# Should show: memory: ✓ Connected
 ```
+
+Do NOT manually edit `~/.claude/mcp.json` — Claude Code ignores that file.
 
 ### First tool call is slow
 
