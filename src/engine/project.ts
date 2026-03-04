@@ -13,6 +13,8 @@ interface TechDetection {
 const TECH_DETECTIONS: TechDetection[] = [
   { name: "Node.js", indicators: ["package.json"] },
   { name: "TypeScript", indicators: ["tsconfig.json"] },
+  { name: "Bun", indicators: ["bunfig.toml", "bun.lock", "bun.lockb"] },
+  { name: "Deno", indicators: ["deno.json", "deno.jsonc"] },
   { name: "Python", indicators: ["pyproject.toml", "requirements.txt", "setup.py"] },
   { name: "Rust", indicators: ["Cargo.toml"] },
   { name: "Go", indicators: ["go.mod"] },
@@ -21,9 +23,13 @@ const TECH_DETECTIONS: TechDetection[] = [
   { name: "PHP", indicators: ["composer.json"] },
   { name: ".NET", indicators: ["Directory.Build.props", "global.json"] },
   { name: "Next.js", indicators: ["next.config.js", "next.config.mjs", "next.config.ts"] },
+  { name: "Nuxt", indicators: ["nuxt.config.ts", "nuxt.config.js"] },
+  { name: "SvelteKit", indicators: ["svelte.config.js", "svelte.config.ts"] },
+  { name: "Astro", indicators: ["astro.config.mjs", "astro.config.ts"] },
+  { name: "Angular", indicators: ["angular.json"] },
   { name: "React", indicators: ["src/App.tsx", "src/App.jsx"] },
-  { name: "Vue", indicators: ["vue.config.js", "nuxt.config.ts"] },
-  { name: "Docker", indicators: ["Dockerfile", "docker-compose.yml"] },
+  { name: "Vue", indicators: ["vue.config.js"] },
+  { name: "Docker", indicators: ["Dockerfile", "docker-compose.yml", "docker-compose.yaml", "compose.yaml", "compose.yml"] },
 ];
 
 function detectTechStack(projectPath: string): string[] {

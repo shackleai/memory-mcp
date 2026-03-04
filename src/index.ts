@@ -29,8 +29,12 @@ function resolveProjectPath(): string | null {
 
   // Use cwd — MCP clients typically launch servers from the workspace directory
   const cwd = process.cwd();
-  // Don't auto-init for system directories
-  if (cwd === "/" || cwd === "C:\\" || cwd.toLowerCase() === process.env.HOME?.toLowerCase()) {
+  // Don't auto-init for system directories (Unix root, any Windows drive root like C:\, D:\, etc.)
+  if (
+    cwd === "/" ||
+    /^[A-Z]:\\?$/i.test(cwd) ||
+    cwd.toLowerCase() === process.env.HOME?.toLowerCase()
+  ) {
     return null;
   }
 
@@ -119,7 +123,7 @@ async function main() {
   const server = new McpServer(
     {
       name: "shackleai-memory",
-      version: "0.3.1",
+      version: "0.3.2",
     },
     {
       instructions: `You have access to a persistent memory system via ShackleAI Memory. Use it proactively — do NOT wait for the user to ask.
