@@ -22,9 +22,9 @@ function errorResponse(toolName: string, err: unknown) {
 export function registerTools(server: McpServer, config: Config) {
   server.tool(
     "memory_init",
-    "Load project context and relevant memories for this session. Call this at the start of every session.",
+    "Initialize project context. Auto-called on server startup — only call manually if switching projects mid-session. Returns conventions, recent decisions, open TODOs, and project metadata.",
     {
-      project_path: z.string().min(1).describe("Current working directory of the project"),
+      project_path: z.string().min(1).describe("Absolute path to the project directory"),
       recent_messages: z
         .array(z.string())
         .optional()
@@ -41,9 +41,9 @@ export function registerTools(server: McpServer, config: Config) {
 
   server.tool(
     "memory_store",
-    "Save important information to persistent memory. Use for decisions, conventions, bugs, architecture choices, preferences, TODOs, and context.",
+    "Save important information to persistent memory. ALWAYS use this when you: make an architectural decision, discover a bug or gotcha, establish a convention, learn a user preference, identify a TODO, or gain important project context. These memories persist across sessions and help future you work faster.",
     {
-      content: z.string().min(1).describe("What to remember"),
+      content: z.string().min(1).describe("What to remember — be specific and concise"),
       category: z
         .enum([
           "decision",
@@ -55,13 +55,13 @@ export function registerTools(server: McpServer, config: Config) {
           "context",
           "session_summary",
         ])
-        .describe("Category of the memory"),
+        .describe("Category: decision (why we chose X), convention (always do Y), bug (gotcha/fix), architecture (how it's built), preference (user wants Z), todo (incomplete work), context (project facts)"),
       importance: z
         .enum(["low", "medium", "high"])
         .optional()
         .default("medium")
-        .describe("How important is this memory"),
-      tags: z.array(z.string()).optional().describe("Tags for organization"),
+        .describe("high = critical to remember, medium = useful context, low = nice to know"),
+      tags: z.array(z.string()).optional().describe("Tags for organization (e.g., ['auth', 'api', 'performance'])"),
     },
     async (params) => {
       try {
@@ -74,9 +74,9 @@ export function registerTools(server: McpServer, config: Config) {
 
   server.tool(
     "memory_search",
-    "Search past memories by semantic meaning. Returns the most relevant memories.",
+    "Search past memories by meaning. Use this BEFORE starting work to check if there's existing context about a topic. Also use when you're unsure about a convention, past decision, or known bug.",
     {
-      query: z.string().min(1).describe("What to search for"),
+      query: z.string().min(1).describe("Natural language query — describe what you're looking for"),
       category: z
         .enum([
           "decision",
@@ -109,10 +109,10 @@ export function registerTools(server: McpServer, config: Config) {
 
   server.tool(
     "memory_update",
-    "Update the content of an existing memory.",
+    "Update an existing memory when information changes. Use when a decision is revised, a bug is fixed, or a convention evolves.",
     {
       id: z.string().min(1).describe("Memory ID to update"),
-      content: z.string().min(1).describe("New content"),
+      content: z.string().min(1).describe("Updated content"),
       reason: z.string().optional().describe("Why the memory is being updated"),
     },
     async (params) => {
@@ -126,7 +126,7 @@ export function registerTools(server: McpServer, config: Config) {
 
   server.tool(
     "memory_delete",
-    "Remove a memory (soft delete).",
+    "Remove a memory that is no longer relevant or was stored incorrectly.",
     {
       id: z.string().min(1).describe("Memory ID to delete"),
     },
@@ -141,7 +141,7 @@ export function registerTools(server: McpServer, config: Config) {
 
   server.tool(
     "memory_list_projects",
-    "List all projects that have stored memories.",
+    "List all projects that have stored memories, with memory counts and last session dates.",
     {},
     async () => {
       try {
@@ -154,10 +154,10 @@ export function registerTools(server: McpServer, config: Config) {
 
   server.tool(
     "memory_session_end",
-    "Save a session summary and any open items. Call this at the end of a session.",
+    "Save a session summary before ending. Captures what was accomplished and what's left to do. This creates continuity — the next session picks up exactly where this one left off.",
     {
-      summary: z.string().min(1).describe("Summary of what happened in this session"),
-      open_items: z.array(z.string()).optional().describe("Tasks or questions left open"),
+      summary: z.string().min(1).describe("What was accomplished in this session"),
+      open_items: z.array(z.string()).optional().describe("Tasks or questions left incomplete"),
     },
     async (params) => {
       try {

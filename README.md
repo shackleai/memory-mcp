@@ -7,27 +7,12 @@ Give Claude Code, Cursor, Windsurf, VS Code Copilot, OpenAI Codex, or any MCP-co
 [![npm version](https://img.shields.io/npm/v/@shackleai/memory-mcp.svg)](https://www.npmjs.com/package/@shackleai/memory-mcp)
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-## Quick Start
-
-Add to your MCP config. That's it.
+## Install — One Command
 
 ### Claude Code
 
 ```bash
 claude mcp add memory -- npx -y @shackleai/memory-mcp
-```
-
-Or manually edit `~/.claude/mcp.json`:
-
-```json
-{
-  "mcpServers": {
-    "memory": {
-      "command": "npx",
-      "args": ["-y", "@shackleai/memory-mcp"]
-    }
-  }
-}
 ```
 
 ### Cursor
@@ -93,28 +78,82 @@ Add to your Claude Desktop config:
 }
 ```
 
-> **Windows note**: If you get "Cannot connect to MCP server" errors, use the full path:
-> `"command": "C:\\Program Files\\nodejs\\npx.cmd"`
+### Alternative: Install Globally
+
+If `npx` doesn't work (older npm versions), install globally:
+
+```bash
+npm install -g @shackleai/memory-mcp
+```
+
+Then use the global binary in your MCP config:
+
+```json
+{
+  "mcpServers": {
+    "memory": {
+      "command": "shackleai-memory"
+    }
+  }
+}
+```
+
+### Alternative: Run from Source
+
+Clone and run directly (for contributors or if npm isn't available):
+
+```bash
+git clone https://github.com/shackleai/memory-mcp.git
+cd memory-mcp && npm install && npm run build
+```
+
+```json
+{
+  "mcpServers": {
+    "memory": {
+      "command": "node",
+      "args": ["/absolute/path/to/memory-mcp/dist/index.js"]
+    }
+  }
+}
+```
 
 ### First Run
 
 The first run downloads the embedding model (~80MB, one-time). After that, everything works offline.
 
-## How It Works
+## How It Works — Zero Config, Fully Automatic
 
 ```
-Session starts     → AI calls memory_init     → loads relevant past context
-During session     → AI calls memory_store    → saves decisions, conventions, bugs
-You ask a question → AI calls memory_search   → finds relevant past memories
-Session ends       → AI calls memory_session_end → persists session summary
-Next session       → AI picks up exactly where you left off
+1. You add one line to your MCP config (above)
+2. Start your AI tool in any project directory
+3. Memory server auto-detects your project on startup
+4. AI stores decisions, conventions, and bugs as you work
+5. Next session — AI picks up exactly where you left off
 ```
 
-Your AI automatically uses these tools — no manual intervention needed. Just start coding.
+**You don't need to do anything.** The server auto-initializes from your working directory. The AI agent sees the memory tools and uses them proactively — storing important decisions, searching for past context, and saving session summaries.
+
+### Supercharge It with CLAUDE.md (Recommended)
+
+For even better results, add this to your project's `CLAUDE.md` file:
+
+```markdown
+## Memory
+
+This project uses ShackleAI Memory for persistent context across sessions.
+- At session start, search memory for relevant context about what you're working on
+- When you make important decisions, discover bugs, or establish conventions — store them in memory
+- Before ending a session, save a summary of what was accomplished and what's left to do
+```
+
+This tells your AI to proactively use memory. Without it, the tools still work, but the AI may not use them as aggressively.
 
 ## Features
 
+- **Fully automatic** — auto-detects project on startup, no manual init needed
 - **7 MCP tools** — init, store, search, update, delete, list projects, session end
+- **MCP resources** — project context available as a readable resource
 - **Local-first** — everything stored on your machine at `~/.shackleai/`
 - **Zero config** — no API keys, no cloud account, no setup
 - **Offline** — local embeddings via MiniLM-L6-v2 (free, runs on CPU)
@@ -130,7 +169,7 @@ Your AI automatically uses these tools — no manual intervention needed. Just s
 
 ### memory_init
 
-Called at session start. Loads project context and relevant memories.
+Initialize or switch project context. **Auto-called on server startup** — only call manually if switching projects mid-session.
 
 ```
 Input:  { project_path: "/path/to/project" }
@@ -141,11 +180,11 @@ Auto-detects project name from `package.json`, `pyproject.toml`, or directory na
 
 ### memory_store
 
-Save important information to persistent memory.
+Save important information to persistent memory. Use for decisions, conventions, bugs, architecture, preferences, TODOs, and context.
 
 ```
 Input:  {
-  content: "We chose PostgreSQL with Prisma ORM",
+  content: "We chose PostgreSQL with Prisma ORM for type-safe queries",
   category: "decision",        // decision|convention|bug|architecture|preference|todo|context|session_summary
   importance: "high",           // low|medium|high (optional, default: medium)
   tags: ["database", "orm"]     // optional
@@ -160,7 +199,7 @@ Automatically checks for duplicates. If similar content exists (cosine similarit
 Search past memories by semantic meaning.
 
 ```
-Input:  { query: "what database are we using", limit: 5 }
+Input:  { query: "what database are we using", category: "decision", limit: 5 }
 Output: { results: [{ id, content, category, relevance, ... }], count }
 ```
 
@@ -168,7 +207,7 @@ Uses vector similarity search — finds relevant memories even when wording diff
 
 ### memory_update
 
-Update the content of an existing memory.
+Update an existing memory when information changes.
 
 ```
 Input:  { id: "mem-uuid", content: "Updated content", reason: "Changed approach" }
@@ -177,7 +216,7 @@ Output: { updated: true, previous_content }
 
 ### memory_delete
 
-Remove a memory (soft delete).
+Remove a memory that is no longer relevant (soft delete).
 
 ```
 Input:  { id: "mem-uuid" }
@@ -195,12 +234,18 @@ Output: { projects: [{ name, path, tech_stack, memory_count, last_session }], co
 
 ### memory_session_end
 
-Save a session summary and open items.
+Save a session summary and open items. Creates continuity between sessions.
 
 ```
-Input:  { summary: "Built auth system", open_items: ["Add tests", "Deploy"] }
+Input:  { summary: "Built auth system with JWT", open_items: ["Add refresh tokens", "Write tests"] }
 Output: { saved: true, date: "2026-03-04" }
 ```
+
+## MCP Resources
+
+The server exposes project context as an MCP resource:
+
+- **`memory://project/context`** — Current project's conventions, decisions, architecture, bugs, and TODOs. MCP clients that support resources can auto-load this at session start.
 
 ## Storage
 
@@ -225,7 +270,7 @@ All data lives locally on your machine:
   config.yaml                    Optional configuration
 ```
 
-**Markdown is the source of truth.** You can read, edit, or delete any memory file with a text editor. The SQLite database is the search index — if it gets corrupted, it can be rebuilt from Markdown files.
+**Markdown is the source of truth.** You can read, edit, or delete any memory file with a text editor. The SQLite database is the search index.
 
 ## Configuration
 
@@ -251,6 +296,78 @@ auto_dedup: true
 # Cosine similarity threshold for deduplication (0.0 to 1.0)
 dedup_threshold: 0.9
 ```
+
+## Advanced: Auto-Init Options
+
+The server auto-detects your project in this order:
+
+1. **CLI argument**: `--project-path /path/to/project`
+2. **Environment variable**: `SHACKLEAI_PROJECT_PATH=/path/to/project`
+3. **Working directory**: Uses `process.cwd()` (this is what most MCP clients pass)
+
+For explicit control, set the project path in your MCP config:
+
+```json
+{
+  "mcpServers": {
+    "memory": {
+      "command": "npx",
+      "args": ["-y", "@shackleai/memory-mcp", "--project-path", "/path/to/project"]
+    }
+  }
+}
+```
+
+Or via environment variable:
+
+```json
+{
+  "mcpServers": {
+    "memory": {
+      "command": "npx",
+      "args": ["-y", "@shackleai/memory-mcp"],
+      "env": {
+        "SHACKLEAI_PROJECT_PATH": "/path/to/project"
+      }
+    }
+  }
+}
+```
+
+## Troubleshooting
+
+### "Cannot connect to MCP server" / Server fails to start
+
+**Most common cause**: Old `npx` version (< 7.0). Check with `npx --version`. If it shows 6.x:
+
+```bash
+# Option 1: Install globally instead
+npm install -g @shackleai/memory-mcp
+
+# Option 2: Update npm
+npm install -g npm@latest
+
+# Option 3: Use node directly
+npm install -g @shackleai/memory-mcp
+# Then use: "command": "shackleai-memory" in your MCP config
+```
+
+**Windows users**: If npx.cmd doesn't work, use the full path:
+```json
+"command": "C:\\Program Files\\nodejs\\npx.cmd"
+```
+
+### First tool call is slow
+
+The embedding model (~80MB) downloads on first use. This is a one-time download. Subsequent runs use the cached model and are fast.
+
+### Memory not persisting between sessions
+
+Check that `~/.shackleai/` directory exists and has write permissions. The server creates it automatically on first run.
+
+### Wrong project detected
+
+Use `--project-path` to explicitly set the project, or call `memory_init` with the correct path.
 
 ## Why ShackleAI?
 
