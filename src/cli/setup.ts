@@ -18,6 +18,15 @@ You MUST do all three of these every session:
 3. **Session end**: Call memory_session_end with a summary of what was accomplished
 `;
 
+function isOutdatedConfig(existing: Record<string, unknown>): boolean {
+  // Local path configs (node dist/index.js) should be upgraded to npx
+  if (existing.command === "node") return true;
+  // Old configs missing -y flag
+  const args = existing.args as string[] | undefined;
+  if (existing.command === "npx" && args && !args.includes("-y")) return true;
+  return false;
+}
+
 function setupMcpConfig(cwd: string): void {
   const configPath = join(cwd, MCP_CONFIG_FILE);
 
@@ -39,13 +48,23 @@ function setupMcpConfig(cwd: string): void {
   }
 
   const servers = config.mcpServers as Record<string, unknown>;
+  const existing = servers.memory as Record<string, unknown> | undefined;
 
-  if (servers.memory) {
-    console.log(`\u2713 memory server already configured in ${MCP_CONFIG_FILE}`);
-  } else {
+  const needsUpdate = !existing || isOutdatedConfig(existing);
+
+  if (needsUpdate) {
+    const wasUpgrade = !!existing;
     servers.memory = MEMORY_SERVER_CONFIG;
     writeFileSync(configPath, JSON.stringify(config, null, 2) + "\n");
-    console.log(existed ? `\u2713 Added memory server to existing ${MCP_CONFIG_FILE}` : `\u2713 Created ${MCP_CONFIG_FILE} with memory server`);
+    if (wasUpgrade) {
+      console.log(`\u2713 Upgraded memory server config in ${MCP_CONFIG_FILE}`);
+    } else if (existed) {
+      console.log(`\u2713 Added memory server to existing ${MCP_CONFIG_FILE}`);
+    } else {
+      console.log(`\u2713 Created ${MCP_CONFIG_FILE} with memory server`);
+    }
+  } else {
+    console.log(`\u2713 memory server already configured in ${MCP_CONFIG_FILE}`);
   }
 }
 
