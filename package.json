@@ -1,6 +1,6 @@
 {
   "name": "@shackleai/memory-mcp",
-  "version": "0.4.4",
+  "version": "0.5.0",
   "mcpName": "io.github.shackleai/memory",
   "description": "Persistent memory for AI coding tools. The first MCP-native memory server.",
   "type": "module",
