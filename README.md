@@ -1,11 +1,20 @@
-# ShackleAI Memory
+<p align="center">
+  <img src="logo.png" alt="ShackleAI" width="120" />
+</p>
 
-**Persistent memory for AI coding tools.** The first MCP-native memory server.
+<h1 align="center">ShackleAI Memory</h1>
+
+<p align="center">
+  <strong>Persistent memory for AI coding tools.</strong> The first MCP-native memory server.
+</p>
+
+<p align="center">
+  <a href="https://www.npmjs.com/package/@shackleai/memory-mcp"><img src="https://img.shields.io/npm/v/@shackleai/memory-mcp.svg" alt="npm version" /></a>
+  <a href="https://www.npmjs.com/package/@shackleai/memory-mcp"><img src="https://img.shields.io/npm/dw/@shackleai/memory-mcp.svg" alt="npm downloads" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License" /></a>
+</p>
 
 Give Claude Code, Cursor, Windsurf, VS Code Copilot, OpenAI Codex, or any MCP-compatible AI tool persistent memory across sessions. Your AI remembers decisions, conventions, bugs, and context — picks up exactly where you left off.
-
-[![npm version](https://img.shields.io/npm/v/@shackleai/memory-mcp.svg)](https://www.npmjs.com/package/@shackleai/memory-mcp)
-[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 ## Install — One Command
 
