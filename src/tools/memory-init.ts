@@ -9,6 +9,7 @@ import {
   getTodosByStatus,
 } from "../engine/storage.js";
 import { archiveOldSessions } from "../engine/archive.js";
+import { getUsageNudge } from "../engine/nudge.js";
 import type { Config } from "../types/index.js";
 
 interface MemoryInitParams {
@@ -56,6 +57,9 @@ export async function handleMemoryInit(params: MemoryInitParams, config: Config)
     .filter(Boolean)
     .join("\n");
 
+  // Check for usage-based nudge (non-annoying: max once/day, only after 3+ sessions)
+  const nudge = getUsageNudge(memoryCount);
+
   return {
     content: [
       {
@@ -68,6 +72,7 @@ export async function handleMemoryInit(params: MemoryInitParams, config: Config)
           session_id: sessionId,
           summary,
           _hint: "Remember: call memory_store whenever you make decisions, discover bugs, or learn conventions during this session.",
+          ...(nudge ? { _upgrade: nudge } : {}),
         }),
       },
     ],

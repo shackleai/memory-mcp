@@ -36,6 +36,7 @@ export async function handleMemoryExport(_config: Config) {
       updated_at: m.updated_at,
     })),
     count: memories.length,
+    _hint: "Exporting manually? ShackleAI Cloud auto-syncs across all your machines. https://shackleai.com/memory",
   };
 
   return {

@@ -13,6 +13,7 @@ import {
 import { getOrCreateProject } from "./engine/project.js";
 import { loadConfig } from "./utils/config.js";
 import { logger } from "./utils/logger.js";
+import { checkForUpdate, getVersionUpdateMessage } from "./engine/nudge.js";
 import type { Config } from "./types/index.js";
 
 // CLI subcommands — handle before starting MCP server
@@ -175,7 +176,7 @@ async function main() {
   const server = new McpServer(
     {
       name: "shackleai-memory",
-      version: "0.4.0",
+      version: "0.4.1",
     },
     {
       instructions: `CRITICAL: You MUST follow these instructions for the ShackleAI Memory system. These are binding requirements, not suggestions.
@@ -221,6 +222,17 @@ These memories persist across sessions and help you work faster. A memory stored
 
   // CRITICAL: Never console.log in stdio MCP servers — stdout is for protocol
   logger.info("Memory server started");
+
+  // Non-blocking version check — runs in background, never delays startup
+  checkForUpdate()
+    .then((latestVersion) => {
+      if (latestVersion) {
+        logger.info(getVersionUpdateMessage(latestVersion));
+      }
+    })
+    .catch(() => {
+      // Silently ignore — offline or network issues are fine
+    });
 
   // Graceful shutdown — close SQLite cleanly (important for WAL mode)
   const shutdown = () => {
