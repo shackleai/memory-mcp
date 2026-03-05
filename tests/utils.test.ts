@@ -32,7 +32,7 @@ describe("config", () => {
     const config = await loadConfig();
     expect(config.embedding.provider).toBe("local");
     expect(config.auto_dedup).toBe(true);
-    expect(config.dedup_threshold).toBe(0.9);
+    expect(config.dedup_threshold).toBe(0.85);
     expect(config.max_memories_per_project).toBe(10000);
   });
 });

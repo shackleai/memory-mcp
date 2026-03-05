@@ -1,6 +1,6 @@
 {
   "name": "@shackleai/memory-mcp",
-  "version": "0.3.6",
+  "version": "0.4.0",
   "description": "Persistent memory for AI coding tools. The first MCP-native memory server.",
   "type": "module",
   "bin": {

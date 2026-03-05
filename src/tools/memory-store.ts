@@ -1,15 +1,16 @@
 import { v4 as uuidv4 } from "uuid";
 import { generateEmbedding } from "../engine/embeddings.js";
-import { insertMemory, getActiveOrMostRecentProject } from "../engine/storage.js";
+import { insertMemory, getActiveOrMostRecentProject, getCurrentSessionId } from "../engine/storage.js";
 import { checkDuplicate, updateDuplicate } from "../engine/dedup.js";
 import { appendMemoryToMarkdown } from "../engine/markdown.js";
-import type { Config, Memory, MemoryCategory, Importance } from "../types/index.js";
+import type { Config, Memory, MemoryCategory, Importance, TodoStatus } from "../types/index.js";
 
 interface MemoryStoreParams {
   content: string;
   category: MemoryCategory;
   importance?: Importance;
   tags?: string[];
+  status?: TodoStatus;
 }
 
 export async function handleMemoryStore(params: MemoryStoreParams, config: Config) {
@@ -33,8 +34,8 @@ export async function handleMemoryStore(params: MemoryStoreParams, config: Confi
 
   const embedding = await generateEmbedding(params.content);
 
-  // Check for duplicates
-  const dedupResult = checkDuplicate(project.id, embedding, config);
+  // Check for duplicates (pass content for length ratio check)
+  const dedupResult = checkDuplicate(project.id, embedding, config, params.content);
   if (dedupResult.isDuplicate && dedupResult.existingMemory) {
     updateDuplicate(dedupResult.existingMemory.id, params.content, embedding);
     return {
@@ -53,6 +54,8 @@ export async function handleMemoryStore(params: MemoryStoreParams, config: Confi
   }
 
   const now = new Date().toISOString();
+  const status = params.category === "todo" ? (params.status || "pending") : null;
+
   const memory: Memory = {
     id: uuidv4(),
     project_id: project.id,
@@ -62,6 +65,10 @@ export async function handleMemoryStore(params: MemoryStoreParams, config: Confi
     tags,
     source: null,
     session_date: now.split("T")[0],
+    session_id: getCurrentSessionId(),
+    status,
+    hit_count: 0,
+    last_accessed_at: null,
     created_at: now,
     updated_at: now,
     is_active: 1,
@@ -89,6 +96,7 @@ export async function handleMemoryStore(params: MemoryStoreParams, config: Confi
           deduplicated: false,
           project: project.name,
           category: params.category,
+          ...(status ? { status } : {}),
         }),
       },
     ],

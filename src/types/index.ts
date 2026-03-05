@@ -20,6 +20,10 @@ export interface Memory {
   tags: string[];
   source: string | null;
   session_date: string | null;
+  session_id: string | null;
+  status: TodoStatus | null;
+  hit_count: number;
+  last_accessed_at: string | null;
   created_at: string;
   updated_at: string;
   is_active: number;
@@ -61,3 +65,5 @@ export type MemoryCategory =
   | "session_summary";
 
 export type Importance = "low" | "medium" | "high";
+
+export type TodoStatus = "pending" | "in_progress" | "done";

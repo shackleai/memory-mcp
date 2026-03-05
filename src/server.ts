@@ -7,6 +7,10 @@ import { handleMemoryUpdate } from "./tools/memory-update.js";
 import { handleMemoryDelete } from "./tools/memory-delete.js";
 import { handleMemoryList } from "./tools/memory-list.js";
 import { handleSessionEnd } from "./tools/session-end.js";
+import { handleMemoryStatus } from "./tools/memory-status.js";
+import { handleMemoryExport } from "./tools/memory-export.js";
+import { handleMemoryImport } from "./tools/memory-import.js";
+import { handleMemoryCleanup } from "./tools/memory-cleanup.js";
 import type { Config } from "./types/index.js";
 import { logger } from "./utils/logger.js";
 
@@ -62,6 +66,10 @@ export function registerTools(server: McpServer, config: Config) {
         .default("medium")
         .describe("high = critical to remember, medium = useful context, low = nice to know"),
       tags: z.array(z.string()).optional().describe("Tags for organization (e.g., ['auth', 'api', 'performance'])"),
+      status: z
+        .enum(["pending", "in_progress", "done"])
+        .optional()
+        .describe("Status for todo items (default: pending). Only used when category is 'todo'."),
     },
     async (params) => {
       try {
@@ -164,6 +172,106 @@ export function registerTools(server: McpServer, config: Config) {
         return await handleSessionEnd(params, config);
       } catch (err) {
         return errorResponse("memory_session_end", err);
+      }
+    },
+  );
+
+  // --- v0.4.0 New Tools ---
+
+  server.tool(
+    "memory_status",
+    "Manage TODO status. Update a todo's status (pending → in_progress → done) or list todos by status. Essential for tracking work across sessions without external files.",
+    {
+      id: z.string().optional().describe("Memory ID to update status (omit to list)"),
+      status: z
+        .enum(["pending", "in_progress", "done"])
+        .optional()
+        .describe("New status to set"),
+      list_status: z
+        .enum(["pending", "in_progress", "done"])
+        .optional()
+        .describe("Filter todos by status (omit to list all)"),
+    },
+    async (params) => {
+      try {
+        return await handleMemoryStatus(params, config);
+      } catch (err) {
+        return errorResponse("memory_status", err);
+      }
+    },
+  );
+
+  server.tool(
+    "memory_export",
+    "Export all memories for the current project as JSON. Use for backup, migration, or sharing project context with team members.",
+    {},
+    async () => {
+      try {
+        return await handleMemoryExport(config);
+      } catch (err) {
+        return errorResponse("memory_export", err);
+      }
+    },
+  );
+
+  server.tool(
+    "memory_import",
+    "Import memories from a JSON array. Use to restore from backup, migrate between machines, or bootstrap a project with shared team context.",
+    {
+      memories: z
+        .array(
+          z.object({
+            content: z.string().min(1),
+            category: z.enum([
+              "decision",
+              "convention",
+              "bug",
+              "architecture",
+              "preference",
+              "todo",
+              "context",
+              "session_summary",
+            ]),
+            importance: z.enum(["low", "medium", "high"]).optional(),
+            tags: z.array(z.string()).optional(),
+            status: z.enum(["pending", "in_progress", "done"]).optional(),
+            created_at: z.string().optional(),
+          }),
+        )
+        .describe("Array of memories to import"),
+    },
+    async (params) => {
+      try {
+        return await handleMemoryImport(params, config);
+      } catch (err) {
+        return errorResponse("memory_import", err);
+      }
+    },
+  );
+
+  server.tool(
+    "memory_cleanup",
+    "Clean up stale memories. Archives completed TODOs and optionally removes old low-importance memories that haven't been accessed. Keeps the memory store lean and relevant.",
+    {
+      archive_done_todos: z
+        .boolean()
+        .optional()
+        .default(true)
+        .describe("Archive todos with status 'done' (default: true)"),
+      delete_stale_days: z
+        .number()
+        .optional()
+        .describe("Delete low-importance memories older than N days that have been accessed 0-1 times"),
+      max_importance: z
+        .enum(["low", "medium"])
+        .optional()
+        .describe("Maximum importance level to delete (default: low)"),
+    },
+    async (params) => {
+      try {
+        return await handleMemoryCleanup(params, config);
+      } catch (err) {
+        return errorResponse("memory_cleanup", err);
       }
     },
   );

@@ -2,7 +2,7 @@ import Database from "better-sqlite3";
 import * as sqliteVec from "sqlite-vec";
 import { getDbPath } from "../utils/paths.js";
 import { logger } from "../utils/logger.js";
-import type { Config, Memory, MemoryWithScore, Project, Session } from "../types/index.js";
+import type { Config, Memory, MemoryWithScore, Project, Session, TodoStatus } from "../types/index.js";
 
 let db: Database.Database;
 
@@ -111,15 +111,49 @@ export async function initStorage(config: Config): Promise<void> {
     );
   `);
 
+  // v0.4.0 schema migrations — add new columns if they don't exist
+  const columns = db
+    .prepare("PRAGMA table_info(memories)")
+    .all() as Array<{ name: string }>;
+  const columnNames = new Set(columns.map((c) => c.name));
+
+  if (!columnNames.has("session_id")) {
+    db.exec("ALTER TABLE memories ADD COLUMN session_id TEXT");
+    logger.info("Migration: added session_id column");
+  }
+  if (!columnNames.has("status")) {
+    db.exec("ALTER TABLE memories ADD COLUMN status TEXT");
+    logger.info("Migration: added status column");
+  }
+  if (!columnNames.has("hit_count")) {
+    db.exec("ALTER TABLE memories ADD COLUMN hit_count INTEGER DEFAULT 0");
+    logger.info("Migration: added hit_count column");
+  }
+  if (!columnNames.has("last_accessed_at")) {
+    db.exec("ALTER TABLE memories ADD COLUMN last_accessed_at TEXT");
+    logger.info("Migration: added last_accessed_at column");
+  }
+
   logger.info("Database schema initialized");
+}
+
+// --- Session ID tracking ---
+let currentSessionId: string | null = null;
+
+export function setCurrentSessionId(sessionId: string): void {
+  currentSessionId = sessionId;
+}
+
+export function getCurrentSessionId(): string | null {
+  return currentSessionId;
 }
 
 // --- Memory CRUD ---
 
 export function insertMemory(memory: Memory, embedding: Float32Array): void {
   const insertMem = db.prepare(`
-    INSERT INTO memories (id, project_id, content, category, importance, tags, source, session_date, created_at, updated_at, is_active)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+    INSERT INTO memories (id, project_id, content, category, importance, tags, source, session_date, session_id, status, hit_count, last_accessed_at, created_at, updated_at, is_active)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
   `);
 
   const insertVec = db.prepare(`
@@ -136,6 +170,10 @@ export function insertMemory(memory: Memory, embedding: Float32Array): void {
       JSON.stringify(memory.tags),
       memory.source,
       memory.session_date,
+      memory.session_id,
+      memory.status,
+      memory.hit_count || 0,
+      memory.last_accessed_at,
       memory.created_at,
       memory.updated_at,
     );
@@ -222,7 +260,7 @@ export function searchMemories(
 
   const rows = db.prepare(query).all(...params) as Array<Memory & { tags: string }>;
 
-  return rows
+  const results = rows
     .map((row) => ({
       ...row,
       tags: safeParseTags(row.tags),
@@ -232,6 +270,19 @@ export function searchMemories(
     }))
     .sort((a, b) => b.score - a.score)
     .slice(0, limit);
+
+  // Update hit counts and last_accessed_at for returned results
+  if (results.length > 0) {
+    const now = new Date().toISOString();
+    const updateHit = db.prepare(
+      "UPDATE memories SET hit_count = COALESCE(hit_count, 0) + 1, last_accessed_at = ? WHERE id = ?",
+    );
+    for (const r of results) {
+      updateHit.run(now, r.id);
+    }
+  }
+
+  return results;
 }
 
 export function getMemoriesByProject(projectId: string, category?: string): Memory[] {
@@ -313,4 +364,72 @@ export function getProjectMemoryCount(projectId: string): number {
     .prepare("SELECT COUNT(*) as count FROM memories WHERE project_id = ? AND is_active = 1")
     .get(projectId) as { count: number };
   return result.count;
+}
+
+// --- TODO Status ---
+
+export function updateMemoryStatus(id: string, status: TodoStatus): boolean {
+  const result = db
+    .prepare("UPDATE memories SET status = ?, updated_at = ? WHERE id = ? AND is_active = 1")
+    .run(status, new Date().toISOString(), id);
+  return result.changes > 0;
+}
+
+export function getTodosByStatus(projectId: string, status?: TodoStatus): Memory[] {
+  let query = "SELECT * FROM memories WHERE project_id = ? AND category = 'todo' AND is_active = 1";
+  const params: unknown[] = [projectId];
+  if (status) {
+    query += " AND status = ?";
+    params.push(status);
+  }
+  query += " ORDER BY importance DESC, updated_at DESC";
+  const rows = db.prepare(query).all(...params) as Array<Memory & { tags: string }>;
+  return rows.map((row) => ({ ...row, tags: safeParseTags(row.tags) }));
+}
+
+// --- Export/Import ---
+
+export function exportProjectMemories(projectId: string): Memory[] {
+  const rows = db
+    .prepare("SELECT * FROM memories WHERE project_id = ? AND is_active = 1 ORDER BY created_at ASC")
+    .all(projectId) as Array<Memory & { tags: string }>;
+  return rows.map((row) => ({ ...row, tags: safeParseTags(row.tags) }));
+}
+
+// --- Cleanup ---
+
+export function archiveDoneTodos(projectId: string): number {
+  const result = db
+    .prepare(
+      "UPDATE memories SET is_active = 0, updated_at = ? WHERE project_id = ? AND category = 'todo' AND status = 'done' AND is_active = 1",
+    )
+    .run(new Date().toISOString(), projectId);
+  // Also remove their embeddings
+  if (result.changes > 0) {
+    db.exec(`
+      DELETE FROM memory_embeddings WHERE id IN (
+        SELECT id FROM memories WHERE project_id = '${projectId}' AND category = 'todo' AND status = 'done' AND is_active = 0
+      )
+    `);
+  }
+  return result.changes;
+}
+
+export function deleteStaleMemories(projectId: string, olderThanDays: number, maxImportance: string): number {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - olderThanDays);
+  const cutoffStr = cutoff.toISOString();
+
+  const importanceFilter = maxImportance === "low" ? "('low')" : "('low', 'medium')";
+
+  const result = db
+    .prepare(
+      `UPDATE memories SET is_active = 0, updated_at = ? WHERE project_id = ? AND is_active = 1 AND importance IN ${importanceFilter} AND updated_at < ? AND hit_count <= 1`,
+    )
+    .run(new Date().toISOString(), projectId, cutoffStr);
+
+  if (result.changes > 0) {
+    db.exec(`DELETE FROM memory_embeddings WHERE id NOT IN (SELECT id FROM memories WHERE is_active = 1)`);
+  }
+  return result.changes;
 }

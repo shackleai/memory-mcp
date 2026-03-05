@@ -84,9 +84,17 @@ You MUST call memory_store immediately when any of these occur:
 - Bug discovered or fixed → category: "bug"
 - Convention established → category: "convention"
 - User preference learned → category: "preference"
-- TODO identified → category: "todo"
+- TODO identified → category: "todo" (auto-gets status: "pending")
 - Important project fact → category: "context"
 - System design insight → category: "architecture"
+
+## TODO Tracking
+- memory_status: list todos by status, or update status (pending → in_progress → done)
+- memory_cleanup: archive completed todos, delete stale low-importance memories
+
+## Data Management
+- memory_export: backup all project memories as JSON
+- memory_import: restore or bootstrap from a backup
 
 ## Session Lifecycle
 1. START: Call memory_search to load context
@@ -120,7 +128,8 @@ function registerResources(server: McpServer) {
     const conventions = getMemoriesByProject(project.id, "convention").slice(0, 10);
     const decisions = getMemoriesByProject(project.id, "decision").slice(0, 10);
     const bugs = getMemoriesByProject(project.id, "bug").slice(0, 5);
-    const todos = getMemoriesByProject(project.id, "todo").slice(0, 5);
+    const allTodos = getMemoriesByProject(project.id, "todo");
+    const todos = allTodos.filter((t) => t.status !== "done").slice(0, 5);
     const architecture = getMemoriesByProject(project.id, "architecture").slice(0, 5);
     const memoryCount = getProjectMemoryCount(project.id);
 
@@ -140,7 +149,7 @@ function registerResources(server: McpServer) {
         : null,
       bugs.length > 0 ? `## Known Bugs\n${bugs.map((b) => `- ${b.content}`).join("\n")}` : null,
       todos.length > 0
-        ? `## Open Items\n${todos.map((t) => `- ${t.content}`).join("\n")}`
+        ? `## Open Items\n${todos.map((t) => `- [${t.status || "pending"}] ${t.content}`).join("\n")}`
         : null,
     ];
 
@@ -166,7 +175,7 @@ async function main() {
   const server = new McpServer(
     {
       name: "shackleai-memory",
-      version: "0.3.6",
+      version: "0.4.0",
     },
     {
       instructions: `CRITICAL: You MUST follow these instructions for the ShackleAI Memory system. These are binding requirements, not suggestions.
@@ -181,9 +190,18 @@ When any of these events occur, you MUST call memory_store immediately:
 - Bug discovered or fixed → category: "bug"
 - Convention established → category: "convention"
 - User preference learned → category: "preference"
-- TODO or incomplete work identified → category: "todo"
+- TODO or incomplete work identified → category: "todo" (auto-gets status: "pending")
 - Important project fact learned → category: "context"
 - System design or structure insight → category: "architecture"
+
+TODO TRACKING:
+- When storing a todo, it gets status "pending" by default.
+- Use memory_status to transition: pending → in_progress → done.
+- Use memory_cleanup to archive completed todos and keep memory lean.
+
+EXPORT/IMPORT:
+- Use memory_export to backup all project memories as JSON.
+- Use memory_import to restore or bootstrap from a backup.
 
 Bias to action: If unsure whether to store — store it. False positives are cheap; lost context is expensive.
 

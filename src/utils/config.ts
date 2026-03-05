@@ -13,7 +13,7 @@ const DEFAULT_CONFIG: Config = {
   max_session_history_days: 90,
   auto_init: true,
   auto_dedup: true,
-  dedup_threshold: 0.9,
+  dedup_threshold: 0.85,
 };
 
 export async function loadConfig(): Promise<Config> {
