@@ -12,7 +12,7 @@ Give Claude Code, Cursor, Windsurf, VS Code Copilot, OpenAI Codex, or any MCP-co
 Run this in your project directory:
 
 ```bash
-npx -y @shackleai/memory-mcp setup
+npx -y @shackleai/memory-mcp@latest setup
 ```
 
 This creates two files in your project:
@@ -56,7 +56,7 @@ The `npx setup` command works for all MCP clients. If you prefer client-specific
 <summary>Claude Code (global config)</summary>
 
 ```bash
-claude mcp add memory -- npx -y @shackleai/memory-mcp
+claude mcp add memory -- npx -y @shackleai/memory-mcp@latest
 ```
 
 This adds memory to your global Claude Code config. It works across all projects, but won't be shared with your team via git.
@@ -73,7 +73,7 @@ Add to `~/.cursor/mcp.json`:
   "mcpServers": {
     "memory": {
       "command": "npx",
-      "args": ["-y", "@shackleai/memory-mcp"]
+      "args": ["-y", "@shackleai/memory-mcp@latest"]
     }
   }
 }
@@ -91,7 +91,7 @@ Add to `~/.codeium/windsurf/mcp_config.json`:
   "mcpServers": {
     "memory": {
       "command": "npx",
-      "args": ["-y", "@shackleai/memory-mcp"]
+      "args": ["-y", "@shackleai/memory-mcp@latest"]
     }
   }
 }
@@ -109,7 +109,7 @@ Add to `.vscode/mcp.json` in your project:
   "servers": {
     "memory": {
       "command": "npx",
-      "args": ["-y", "@shackleai/memory-mcp"]
+      "args": ["-y", "@shackleai/memory-mcp@latest"]
     }
   }
 }
@@ -130,7 +130,7 @@ Add to your Claude Desktop config:
   "mcpServers": {
     "memory": {
       "command": "npx",
-      "args": ["-y", "@shackleai/memory-mcp"]
+      "args": ["-y", "@shackleai/memory-mcp@latest"]
     }
   }
 }
@@ -187,9 +187,9 @@ The first run downloads the embedding model (~80MB, one-time). After that, every
 
 ## Features
 
-- **One-command setup** — `npx -y @shackleai/memory-mcp setup` and you're done
+- **One-command setup** — `npx -y @shackleai/memory-mcp@latest setup` and you're done
 - **Fully automatic** — auto-detects project on startup, no manual init needed
-- **7 MCP tools** — init, store, search, update, delete, list projects, session end
+- **11 MCP tools** — init, store, search, update, delete, list projects, session end, TODO status, export, import, cleanup
 - **MCP resources** — project context available as a readable resource
 - **Local-first** — everything stored on your machine at `~/.shackleai/`
 - **Zero config** — no API keys, no cloud account, no setup beyond the install command
@@ -349,7 +349,7 @@ For explicit control, set the project path in your MCP config:
   "mcpServers": {
     "memory": {
       "command": "npx",
-      "args": ["-y", "@shackleai/memory-mcp", "--project-path", "/path/to/project"]
+      "args": ["-y", "@shackleai/memory-mcp@latest", "--project-path", "/path/to/project"]
     }
   }
 }
@@ -362,7 +362,7 @@ Or via environment variable:
   "mcpServers": {
     "memory": {
       "command": "npx",
-      "args": ["-y", "@shackleai/memory-mcp"],
+      "args": ["-y", "@shackleai/memory-mcp@latest"],
       "env": {
         "SHACKLEAI_PROJECT_PATH": "/path/to/project"
       }

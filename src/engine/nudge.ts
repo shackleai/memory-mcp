@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { getStoragePath } from "../utils/paths.js";
 import { logger } from "../utils/logger.js";
 
-const CURRENT_VERSION = "0.4.1";
+const CURRENT_VERSION = "0.4.2";
 const NPM_REGISTRY_URL = "https://registry.npmjs.org/@shackleai/memory-mcp/latest";
 const CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000; // once per day
 
@@ -160,7 +160,7 @@ export function getUsageNudge(memoryCount: number): string | null {
 export function getVersionUpdateMessage(latestVersion: string): string {
   return (
     `Update available: ${CURRENT_VERSION} → ${latestVersion}. ` +
-    `Run: npx @shackleai/memory-mcp@latest setup`
+    `Run: npx -y @shackleai/memory-mcp@latest setup`
   );
 }
 

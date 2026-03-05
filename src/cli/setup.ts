@@ -5,7 +5,7 @@ const MCP_CONFIG_FILE = ".mcp.json";
 
 const MEMORY_SERVER_CONFIG = {
   command: "npx",
-  args: ["-y", "@shackleai/memory-mcp"],
+  args: ["-y", "@shackleai/memory-mcp@latest"],
 };
 
 const MEMORY_INSTRUCTIONS = `## Memory
@@ -21,9 +21,12 @@ You MUST do all three of these every session:
 function isOutdatedConfig(existing: Record<string, unknown>): boolean {
   // Local path configs (node dist/index.js) should be upgraded to npx
   if (existing.command === "node") return true;
-  // Old configs missing -y flag
   const args = existing.args as string[] | undefined;
-  if (existing.command === "npx" && args && !args.includes("-y")) return true;
+  if (!args) return true;
+  // Old configs missing -y flag
+  if (existing.command === "npx" && !args.includes("-y")) return true;
+  // Old configs without @latest tag (won't auto-update)
+  if (existing.command === "npx" && !args.some((a) => a.includes("@latest"))) return true;
   return false;
 }
 
