@@ -184,7 +184,7 @@ async function main() {
   const server = new McpServer(
     {
       name: "shackleai-memory",
-      version: "0.5.1",
+      version: "0.5.2",
     },
     {
       instructions: `CRITICAL: You MUST follow these instructions for the ShackleAI Memory system. These are binding requirements, not suggestions.

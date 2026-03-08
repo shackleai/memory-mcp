@@ -7,12 +7,12 @@
     "source": "github"
   },
   "homepage": "https://shackleai.com/tools/shackleai-memory",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "@shackleai/memory-mcp",
-      "version": "0.5.1",
+      "version": "0.5.2",
       "transport": {
         "type": "stdio"
       }
