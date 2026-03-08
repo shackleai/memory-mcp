@@ -1,4 +1,5 @@
 import { getMemory, updateMemoryStatus, getActiveOrMostRecentProject, getTodosByStatus } from "../engine/storage.js";
+import { cloudMemoryStatus } from "../engine/cloud.js";
 import type { Config, TodoStatus } from "../types/index.js";
 
 interface MemoryStatusParams {
@@ -8,6 +9,7 @@ interface MemoryStatusParams {
 }
 
 export async function handleMemoryStatus(params: MemoryStatusParams, _config: Config) {
+  if (_config.provider === "cloud") return cloudMemoryStatus(params, _config);
   const project = getActiveOrMostRecentProject();
   if (!project) {
     return {

@@ -3,6 +3,7 @@ import { generateEmbedding } from "../engine/embeddings.js";
 import { insertMemory, getActiveOrMostRecentProject, getCurrentSessionId } from "../engine/storage.js";
 import { checkDuplicate, updateDuplicate } from "../engine/dedup.js";
 import { appendMemoryToMarkdown } from "../engine/markdown.js";
+import { cloudMemoryStore } from "../engine/cloud.js";
 import type { Config, Memory, MemoryCategory, Importance, TodoStatus } from "../types/index.js";
 
 interface MemoryStoreParams {
@@ -14,6 +15,7 @@ interface MemoryStoreParams {
 }
 
 export async function handleMemoryStore(params: MemoryStoreParams, config: Config) {
+  if (config.provider === "cloud") return cloudMemoryStore(params, config);
   const importance = params.importance || "medium";
   const tags = params.tags || [];
 

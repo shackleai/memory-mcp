@@ -1,5 +1,6 @@
 import { getMemory, updateMemory } from "../engine/storage.js";
 import { generateEmbedding } from "../engine/embeddings.js";
+import { cloudMemoryUpdate } from "../engine/cloud.js";
 import type { Config } from "../types/index.js";
 
 interface MemoryUpdateParams {
@@ -9,6 +10,7 @@ interface MemoryUpdateParams {
 }
 
 export async function handleMemoryUpdate(params: MemoryUpdateParams, config: Config) {
+  if (config.provider === "cloud") return cloudMemoryUpdate(params, config);
   const existing = getMemory(params.id);
   if (!existing) {
     return {

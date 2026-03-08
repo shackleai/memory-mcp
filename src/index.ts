@@ -168,10 +168,18 @@ function registerResources(server: McpServer) {
 
 async function main() {
   const config = await loadConfig();
-  await initStorage(config);
 
-  // Auto-detect and initialize project from cwd/env/CLI arg
-  autoInit(config);
+  if (config.provider === "cloud") {
+    if (!config.api_key) {
+      logger.error("Cloud mode requires api_key in ~/.shackleai/config.yaml");
+      process.exit(1);
+    }
+    logger.info(`Cloud mode: ${config.cloud_url} (local SQLite skipped)`);
+  } else {
+    await initStorage(config);
+    // Auto-detect and initialize project from cwd/env/CLI arg
+    autoInit(config);
+  }
 
   const server = new McpServer(
     {

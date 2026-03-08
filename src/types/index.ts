@@ -1,5 +1,8 @@
 export interface Config {
   storage_path: string;
+  provider: "local" | "cloud";
+  cloud_url: string;
+  api_key: string;
   embedding: {
     provider: "local" | "openai";
     api_key?: string;

@@ -6,6 +6,9 @@ import type { Config } from "../types/index.js";
 
 const DEFAULT_CONFIG: Config = {
   storage_path: getStoragePath(),
+  provider: "local",
+  cloud_url: "https://shackleai.com",
+  api_key: "",
   embedding: {
     provider: "local",
   },

@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from "uuid";
 import { generateEmbedding } from "../engine/embeddings.js";
 import { insertMemory, getActiveOrMostRecentProject } from "../engine/storage.js";
 import { appendMemoryToMarkdown } from "../engine/markdown.js";
+import { cloudMemoryImport } from "../engine/cloud.js";
 import type { Config, Memory, MemoryCategory, Importance, TodoStatus } from "../types/index.js";
 
 interface ImportMemory {
@@ -18,6 +19,7 @@ interface MemoryImportParams {
 }
 
 export async function handleMemoryImport(params: MemoryImportParams, config: Config) {
+  if (config.provider === "cloud") return cloudMemoryImport(params, config);
   const project = getActiveOrMostRecentProject();
   if (!project) {
     return {

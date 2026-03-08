@@ -1,4 +1,5 @@
 import { getActiveOrMostRecentProject, archiveDoneTodos, deleteStaleMemories } from "../engine/storage.js";
+import { cloudMemoryCleanup } from "../engine/cloud.js";
 import type { Config } from "../types/index.js";
 
 interface MemoryCleanupParams {
@@ -8,6 +9,7 @@ interface MemoryCleanupParams {
 }
 
 export async function handleMemoryCleanup(params: MemoryCleanupParams, _config: Config) {
+  if (_config.provider === "cloud") return cloudMemoryCleanup(params, _config);
   const project = getActiveOrMostRecentProject();
   if (!project) {
     return {

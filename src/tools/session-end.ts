@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from "uuid";
 import { getActiveOrMostRecentProject, insertSession, getProjectMemoryCount } from "../engine/storage.js";
 import { writeSessionMarkdown } from "../engine/markdown.js";
+import { cloudSessionEnd } from "../engine/cloud.js";
 import type { Config } from "../types/index.js";
 
 interface SessionEndParams {
@@ -9,6 +10,7 @@ interface SessionEndParams {
 }
 
 export async function handleSessionEnd(params: SessionEndParams, config: Config) {
+  if (config.provider === "cloud") return cloudSessionEnd(params, config);
   const project = getActiveOrMostRecentProject();
   if (!project) {
     return {

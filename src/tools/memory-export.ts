@@ -1,7 +1,9 @@
 import { getActiveOrMostRecentProject, exportProjectMemories } from "../engine/storage.js";
+import { cloudMemoryExport } from "../engine/cloud.js";
 import type { Config } from "../types/index.js";
 
 export async function handleMemoryExport(_config: Config) {
+  if (_config.provider === "cloud") return cloudMemoryExport(_config);
   const project = getActiveOrMostRecentProject();
   if (!project) {
     return {

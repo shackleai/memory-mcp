@@ -10,6 +10,7 @@ import {
 } from "../engine/storage.js";
 import { archiveOldSessions } from "../engine/archive.js";
 import { getUsageNudge } from "../engine/nudge.js";
+import { cloudMemoryInit } from "../engine/cloud.js";
 import type { Config } from "../types/index.js";
 
 interface MemoryInitParams {
@@ -18,6 +19,7 @@ interface MemoryInitParams {
 }
 
 export async function handleMemoryInit(params: MemoryInitParams, config: Config) {
+  if (config.provider === "cloud") return cloudMemoryInit(params, config);
   const project = getOrCreateProject(params.project_path);
 
   // Set as the active project for this session — all subsequent tool calls use this

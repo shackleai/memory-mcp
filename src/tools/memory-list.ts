@@ -1,7 +1,9 @@
 import { getAllProjects, getProjectMemoryCount } from "../engine/storage.js";
+import { cloudMemoryListProjects } from "../engine/cloud.js";
 import type { Config } from "../types/index.js";
 
 export async function handleMemoryList(config: Config) {
+  if (config.provider === "cloud") return cloudMemoryListProjects(config);
   const projects = getAllProjects();
 
   const result = projects.map((p) => ({

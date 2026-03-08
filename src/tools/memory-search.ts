@@ -1,5 +1,6 @@
 import { generateEmbedding } from "../engine/embeddings.js";
 import { searchMemories, getActiveOrMostRecentProject } from "../engine/storage.js";
+import { cloudMemorySearch } from "../engine/cloud.js";
 import type { Config } from "../types/index.js";
 
 interface MemorySearchParams {
@@ -9,6 +10,7 @@ interface MemorySearchParams {
 }
 
 export async function handleMemorySearch(params: MemorySearchParams, config: Config) {
+  if (config.provider === "cloud") return cloudMemorySearch(params, config);
   const limit = params.limit || 5;
 
   // Use the active project set by memory_init, or fallback to most recent
