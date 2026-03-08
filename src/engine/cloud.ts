@@ -60,7 +60,7 @@ async function cloudRequest(
     headers: {
       Authorization: `Bearer ${config.api_key}`,
       "Content-Type": "application/json",
-      "User-Agent": "shackleai-memory-mcp/0.6.0",
+      "User-Agent": "shackleai-memory-mcp/0.5.1",
     },
     ...(body ? { body: JSON.stringify(body) } : {}),
   });
