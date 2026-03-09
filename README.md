@@ -343,6 +343,81 @@ auto_dedup: true
 dedup_threshold: 0.9
 ```
 
+## Cloud Mode
+
+By default, ShackleAI Memory runs locally with SQLite — no account needed. **Cloud mode** syncs your memories to ShackleAI's managed infrastructure via the Gateway, giving you server-side persistence, cross-device access, and PostgreSQL + pgvector-powered semantic search.
+
+### Local vs Cloud
+
+| | Local (default) | Cloud |
+|---|---|---|
+| **Storage** | SQLite + sqlite-vec on your machine | PostgreSQL + pgvector via ShackleAI Gateway |
+| **Embeddings** | Local MiniLM-L6-v2 (CPU) | Server-side embeddings |
+| **Account required** | No | Yes (free tier available) |
+| **Cross-device** | No — `~/.shackleai/` is per-machine | Yes — memories persist in the cloud |
+| **Tools available** | All 11 tools | All 11 tools |
+| **Offline support** | Full | Requires internet |
+
+### Get an API Key
+
+1. Go to [shackleai.com](https://shackleai.com) and sign in (or create an account)
+2. Navigate to **Settings > API Keys**
+3. Click **Create Key** — you'll get a unified account key in the format `sk_shackle_*`
+4. Copy the key. It won't be shown again.
+
+### Configure Cloud Mode
+
+Cloud mode connects to the ShackleAI Gateway MCP endpoint with Bearer authentication. Configure your MCP client to point at the Gateway instead of running the local server.
+
+<details>
+<summary>Claude Code</summary>
+
+```bash
+claude mcp add memory-cloud --transport http https://gateway.shackleai.com/mcp \
+  --header "Authorization: Bearer sk_shackle_YOUR_KEY_HERE"
+```
+
+Or add to `.mcp.json` in your project:
+
+```json
+{
+  "mcpServers": {
+    "memory": {
+      "type": "http",
+      "url": "https://gateway.shackleai.com/mcp",
+      "headers": {
+        "Authorization": "Bearer sk_shackle_YOUR_KEY_HERE"
+      }
+    }
+  }
+}
+```
+
+</details>
+
+<details>
+<summary>Cursor / Windsurf / VS Code Copilot</summary>
+
+Add to your client's MCP config file:
+
+```json
+{
+  "mcpServers": {
+    "memory": {
+      "type": "http",
+      "url": "https://gateway.shackleai.com/mcp",
+      "headers": {
+        "Authorization": "Bearer sk_shackle_YOUR_KEY_HERE"
+      }
+    }
+  }
+}
+```
+
+</details>
+
+All 11 memory tools (`memory_init`, `memory_store`, `memory_search`, `memory_update`, `memory_delete`, `memory_list_projects`, `memory_session_end`, `memory_status`, `memory_export`, `memory_import`, `memory_cleanup`) work identically in cloud mode — no code changes needed.
+
 ## Advanced: Auto-Init Options
 
 The server auto-detects your project in this order:
